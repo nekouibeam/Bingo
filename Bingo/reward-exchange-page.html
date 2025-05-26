@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>獎品兌換中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .points-display {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 300px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .points-label {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .points-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #ffeaa7;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            color: #666;
+        }
+
+        .tab.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .rewards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .reward-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .reward-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .reward-image {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(45deg, #ddd, #eee);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .reward-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .reward-card:hover .reward-image::before {
+            left: 100%;
+        }
+
+        .reward-info {
+            padding: 20px;
+        }
+
+        .reward-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .reward-description {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .reward-points {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 15px;
+        }
+
+        .exchange-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .exchange-btn:hover:not(:disabled) {
+            background: linear-gradient(45deg, #00a085, #00b7b3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 184, 148, 0.3);
+        }
+
+        .exchange-btn:disabled {
+            background: #ddd;
+            cursor: not-allowed;
+            color: #999;
+        }
+
+        .insufficient-points {
+            background: #e74c3c !important;
+        }
+
+        .insufficient-points:hover {
+            background: #c0392b !important;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .success-icon {
+            color: #00b894;
+        }
+
+        .error-icon {
+            color: #e74c3c;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .modal-message {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .modal-btn {
+            padding: 12px 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .category-hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .rewards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-tabs {
+                justify-content: flex-start;
+                overflow-x: auto;
+                padding: 5px;
+            }
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 30px;
+            top: 30px;
+            background: rgba(255,255,255,0.25);
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 1em;
+            font-weight: bold;
+            z-index: 2;
+            transition: background 0.2s;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.5);
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="achievement.html" class="back-btn" title="返回成就頁面">← 返回</a>
+            <h1>🎁 獎品兌換中心</h1>
+            <div class="points-display">
+                <div class="points-label">您目前的點數</div>
+                <div class="points-value" id="userPoints">1,250</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="filter-tabs">
+                <button class="tab active" data-category="all">全部商品</button>
+                <button class="tab" data-category="electronics">3C產品</button>
+                <button class="tab" data-category="food">美食券</button>
+                <button class="tab" data-category="lifestyle">生活用品</button>
+                <button class="tab" data-category="entertainment">娛樂票券</button>
+            </div>
+
+            <div class="rewards-grid" id="rewardsGrid">
+                <!-- 3C產品 -->
+                <div class="reward-card" data-category="electronics">
+                    <div class="reward-image">📱</div>
+                    <div class="reward-info">
+                        <div class="reward-name">iPhone 15 Pro</div>
+                        <div class="reward-description">最新款 iPhone，128GB 容量，支援 5G 網路</div>
+                        <div class="reward-points">需要點數：35,000</div>
+                        <button class="exchange-btn" data-points="35000" data-name="iPhone 15 Pro">立即兌換</button>
+                    </div>
+                </div>
+
+                <div class="reward-card" data-category="electronics">
+                    <div class="reward-image">💻</div>
+                    <div class="reward-info">
+                        <div class="reward-name">MacBook Air M2</div>
+                        <div class="reward-description">輕薄筆電，8GB RAM + 256GB SSD</div>
+                        <div class="reward-points">需要點數：28,000</div>
+                        <button class="exchange-btn" data-points="28000" data-name="MacBook Air M2">立即兌換</button>
+                    </div>
+                </div>
+
+                <div class="reward-card" data-category="electronics">
+                    <div class="reward-image">🎧</div>
+                    <div class="reward-info">
+                        <div class="reward-name">AirPods Pro</div>
+                        <div class="reward-description">主動降噪無線耳機，第二代</div>
+                        <div class="reward-points">需要點數：6,500</div>
+                        <button class="exchange-btn" data-points="6500" data-name="AirPods Pro">立即兌換</button>
+                    </div>
+                </div>
+
+                <!-- 美食券 -->
+                <div class="reward-card" data-category="food">
+                    <div class="reward-image">🍔</div>
+                    <div class="reward-info">
+                        <div class="reward-name">麥當勞餐券</div>
+                        <div class="reward-description">價值 $500 的麥當勞餐券，可使用於全台門市</div>
+                        <div class="reward-points">需要點數：400</div>
+                        <button class="exchange-btn" data-points="400" data-name="麥當勞餐券 $500">立即兌換</button>
+                    </div>
+                </div>
+
+                <div class="reward-card" data-category="food">
+                    <div class="reward-image">🍕</div>
+                    <div class="reward-info">
+                        <div class="reward-name">必勝客餐券</div>
+                        <div class="reward-description">價值 $800 的必勝客餐券，享受美味披薩</div>
+                        <div class="reward-points">需要點數：650</div>
+                        <button class="exchange-btn" data-points="650" data-name="必勝客餐券 $800">立即兌換</button>
+                    </div>
+                </div>
+
+                <div class="reward-card" data-category="food">
+                    <div class="reward-image">☕</div>
+                    <div class="reward-info">
+                        <div class="reward-name">星巴克咖啡券</div>
+                        <div class="reward-description">價值 $1000 的星巴克咖啡券</div>
+                        <div class="reward-points">需要點數：850</div>
+                        <button class="exchange-btn" data-points="850" data-name="星巴克咖啡券 $1000">立即兌換</button>
+                    </div>
+                </div>
+
+                <!-- 生活用品 -->
+                <div class="reward-card" data-category="lifestyle">
+                    <div class="reward-image">🧴</div>
+                    <div class="reward-info">
+                        <div class="reward-name">保養品組合</div>
+                        <div class="reward-description">知名品牌保養品組合，包含洗面乳、化妝水、乳液</div>
+                        <div class="reward-points">需要點數：1,200</div>
+                        <button class="exchange-btn" data-points="1200" data-name="保養品組合">立即兌換</button>
+                    </div>
+                </div>
+
+                <div class="reward-card" data-category="lifestyle">
+                    <div class="reward-image">👕</div>
+                    <div class="reward-info">
+                        <div class="reward-name">UNIQLO 購物金</div>
+                        <div class="reward-description">價值 $2000 的 UNIQLO 購物金</div>
+                        <div class="reward-points">需要點數：1,600</div>
+                        <button class="exchange-btn" data-points="1600" data-name="UNIQLO 購物金 $2000">立即兌換</button>
+                    </div>
+                </div>
+
+                <!-- 娛樂票券 -->
+                <div class="reward-card" data-category="entertainment">
+                    <div class="reward-image">🎬</div>
+                    <div class="reward-info">
+                        <div class="reward-name">電影票券</div>
+                        <div class="reward-description">威秀影城電影票券 2張，可觀看一般場次</div>
+                        <div class="reward-points">需要點數：800</div>
+                        <button class="exchange-btn" data-points="800" data-name="威秀電影票券 2張">立即兌換</button>
+                    </div>
+                </div>
+
+                <div class="reward-card" data-category="entertainment">
+                    <div class="reward-image">🎢</div>
+                    <div class="reward-info">
+                        <div class="reward-name">六福村門票</div>
+                        <div class="reward-description">六福村主題樂園門票 1張，盡情享受刺激遊樂設施</div>
+                        <div class="reward-points">需要點數：750</div>
+                        <button class="exchange-btn" data-points="750" data-name="六福村門票">立即兌換</button>
+                    </div>
+                </div>
+
+                <div class="reward-card" data-category="entertainment">
+                    <div class="reward-image">🏊</div>
+                    <div class="reward-info">
+                        <div class="reward-name">健身房月票</div>
+                        <div class="reward-description">World Gym 健身房月票，享受專業健身設備</div>
+                        <div class="reward-points">需要點數：2,500</div>
+                        <button class="exchange-btn" data-points="2500" data-name="World Gym 月票">立即兌換</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 兌換結果彈窗 -->
+    <div class="modal" id="resultModal">
+        <div class="modal-content">
+            <div class="modal-icon" id="modalIcon">✅</div>
+            <div class="modal-title" id="modalTitle">兌換成功！</div>
+            <div class="modal-message" id="modalMessage">恭喜您成功兌換獎品！</div>
+            <button class="modal-btn" onclick="closeModal()">確定</button>
+        </div>
+    </div>
+
+    <script>
+        let userPoints = 0;
+
+        // 初始化頁面
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchUserPoint(); // 取得用戶點數           
+            updatePointsDisplay();
+            updateExchangeButtons();
+            setupEventListeners();
+        });
+
+        async function fetchUserPoint() {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                console.warn("未登入，無法取得點數");
+                return;
+            }
+
+            try {
+                const res = await fetch("http://localhost:3000/player/points", {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                const result = await res.json();
+                if (res.ok) {
+                    userPoints = result.point; // 更新全局變數
+
+                } else {
+                    console.error("點數取得失敗：", result.error || "未知錯誤");
+                    userPoints = "點數取得失敗";
+                }
+
+                updatePointsDisplay(); // 更新顯示
+                updateExchangeButtons(); // 更新兌換按鈕狀態
+            } catch (err) {
+                console.error("點數 API 發生錯誤：", err);
+                document.getElementById("pointValue").textContent = "0";
+            }
+        }
+
+        // 兌換獎品
+        async function exchangeReward(requiredPoints, itemName) {
+            const token = localStorage.getItem("token");
+
+            // 🔐 驗證登入狀態
+            if (!token) {
+                showModal(false, '錯誤', '您尚未登入，無法執行兌換。');
+                return;
+            }
+
+            // ✅ 驗證點數足夠
+            if (userPoints >= requiredPoints) {
+                const newPoints = userPoints - requiredPoints;
+
+                try {
+                    const res = await fetch('http://localhost:3000/player/points', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ points: newPoints })
+                    });
+
+
+                    // ✅ 防止空 body crash：
+                    const text = await res.text();
+                    const result = text ? JSON.parse(text) : {};
+
+                    if (res.ok) {
+                        // 🧠 更新本地變數與畫面
+                        userPoints = result.points;
+                        updatePointsDisplay();
+                        updateExchangeButtons();
+
+                        // 🎉 顯示成功彈窗
+                        showModal(
+                            true,
+                            '兌換成功！',
+                            `恭喜您成功兌換「${itemName}」！\n已扣除 ${requiredPoints.toLocaleString()} 點數。`
+                        );
+
+                    } else {
+                        // ❌ 伺服器有回應但錯誤
+                        console.error("❌ 點數更新失敗：", result.error);
+                        showModal(false, '兌換失敗', `伺服器錯誤：${result.error || '未知錯誤'}`);
+                    }
+
+                } catch (err) {
+                    // 🧨 網路錯誤或無法解析
+                    console.error("❌ API 發生錯誤：", err);
+                    showModal(false, '兌換失敗', '無法連線到伺服器，請稍後再試。');
+                }
+
+            } else {
+                // ❌ 點數不足
+                showModal(
+                    false,
+                    '兌換失敗',
+                    `點數不足，無法兌換「${itemName}」。\n需要 ${requiredPoints.toLocaleString()} 點數，您目前有 ${userPoints.toLocaleString()} 點數。`
+                );
+            }
+        }
+
+        // 更新點數顯示
+        function updatePointsDisplay() {
+            document.getElementById('userPoints').textContent = userPoints.toLocaleString();
+        }
+
+        // 更新兌換按鈕狀態
+        function updateExchangeButtons() {
+            const exchangeBtns = document.querySelectorAll('.exchange-btn');
+            exchangeBtns.forEach(btn => {
+                const requiredPoints = parseInt(btn.dataset.points);
+                if (userPoints < requiredPoints) {
+                    btn.textContent = '點數不足';
+                    btn.classList.add('insufficient-points');
+                    btn.disabled = true;
+                } else {
+                    btn.textContent = '立即兌換';
+                    btn.classList.remove('insufficient-points');
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        // 設置事件監聽器
+        function setupEventListeners() {
+            // 分類篩選
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // 更新活動標籤
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 篩選商品
+                    const category = this.dataset.category;
+                    filterRewards(category);
+                });
+            });
+
+            // 兌換按鈕
+            const exchangeBtns = document.querySelectorAll('.exchange-btn');
+            exchangeBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const requiredPoints = parseInt(this.dataset.points);
+                    const itemName = this.dataset.name;
+                    exchangeReward(requiredPoints, itemName);
+                });
+            });
+        }
+
+        // 篩選獎品
+        function filterRewards(category) {
+            const cards = document.querySelectorAll('.reward-card');
+            cards.forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // 顯示彈窗
+        function showModal(isSuccess, title, message) {
+            const modal = document.getElementById('resultModal');
+            const icon = document.getElementById('modalIcon');
+            const titleElement = document.getElementById('modalTitle');
+            const messageElement = document.getElementById('modalMessage');
+
+            if (isSuccess) {
+                icon.textContent = '✅';
+                icon.className = 'modal-icon success-icon';
+            } else {
+                icon.textContent = '❌';
+                icon.className = 'modal-icon error-icon';
+            }
+
+            titleElement.textContent = title;
+            messageElement.textContent = message;
+            modal.style.display = 'block';
+        }
+
+        // 關閉彈窗
+        function closeModal() {
+            document.getElementById('resultModal').style.display = 'none';
+        }
+
+        // 點擊彈窗外部關閉
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('resultModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

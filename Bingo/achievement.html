@@ -272,8 +272,15 @@
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
         }
 
         .empty-state {
@@ -306,7 +313,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .filters {
@@ -329,7 +338,8 @@
             backdrop-filter: blur(10px);
         }
 
-        .filter-button:hover, .filter-button.active {
+        .filter-button:hover,
+        .filter-button.active {
             background: var(--primary-color);
             border-color: var(--primary-color);
             transform: translateY(-2px);
@@ -380,19 +390,109 @@
                 text-align: center;
             }
         }
+
+        .points-banner {
+            margin-top: 100px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--accent-color);
+            padding: 12px 24px;
+            border-radius: var(--border-radius);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: 20px;
+            box-shadow: var(--box-shadow);
+            backdrop-filter: blur(8px);
+            cursor: pointer;
+        }
+
+        .points-banner:hover {
+            background: rgba(255, 255, 255, 1);
+        }
+
+        /* Modal 樣式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            width: 300px;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 15px;
+            color: var(--text-color);
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        .modal-actions button {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal-actions button:hover {
+            background: var(--secondary-color);
+        }
+
+        /* 第二種 */
+        .points-banner a {
+            color: inherit;
+            /* 繼承父元素 .points-banner 的顏色 */
+            text-decoration: none;
+            /* 移除下劃線 */
+        }
     </style>
 </head>
 
 <body>
     <div class="header">
         <div class="header-content">
-            <h1 style="text-align: left;"><a href="home.html" style="text-decoration: none; color: inherit;">成就排行榜</a></h1>
+            <h1 style="text-align: left;"><a href="home.html" style="text-decoration: none; color: inherit;">成就排行榜</a>
+            </h1>
             <div class="nav-links">
                 <a href="creator_dashboard.html" class="nav-link">創作者面板</a>
                 <a href="player.html" class="nav-link">遊戲大廳</a>
                 <a href="achievement.html" class="nav-link">成就排行榜</a>
             </div>
         </div>
+    </div>
+    
+    <!-- 第二種 -->
+    <div class="points-banner" id="pointBalance">
+        <a href="reward-exchange-page.html">
+            💰 持有點數：<span id="pointValue">999</span>
+        </a>
     </div>
 
     <div class="main-container">
@@ -434,7 +534,7 @@
                 <h3>🎮 Bingo 完成排行榜</h3>
                 <p>根據完成的 Bingo 數量排名</p>
             </div>
-            
+
             <div class="loading" id="loadingState">
                 <div class="loading-spinner"></div>
                 <p>載入排行榜中...</p>
@@ -473,6 +573,36 @@
 
             // 初始化
             fetchLeaderboard();
+            fetchUserPoint();
+
+            // 取得點數
+            async function fetchUserPoint() {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    console.warn("未登入，無法取得點數");
+                    return;
+                }
+
+                try {
+                    const res = await fetch("http://localhost:3000/player/points", {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                    });
+
+                    const result = await res.json();
+                    if (res.ok) {
+                    document.getElementById("pointValue").textContent = result.point;
+                    } else {
+                    console.error("點數取得失敗：", result.error || "未知錯誤");
+                    document.getElementById("pointValue").textContent = "0";
+                    }
+                } catch (err) {
+                    console.error("點數 API 發生錯誤：", err);
+                    document.getElementById("pointValue").textContent = "0";
+                }
+            }
 
             // 模擬從後端獲取排行榜資料
             async function fetchLeaderboard() {
@@ -483,10 +613,10 @@
                     // 模擬排行榜資料
                     leaderboardData = generateMockData();
                     filteredData = [...leaderboardData];
-                    
+
                     updateStats();
                     renderLeaderboard();
-                    
+
                     loadingState.style.display = 'none';
                     leaderboardList.style.display = 'block';
                 } catch (error) {
@@ -617,7 +747,7 @@
                         break;
                     case 'recent':
                         // 模擬本月新加入的玩家
-                        filteredData = leaderboardData.filter(player => 
+                        filteredData = leaderboardData.filter(player =>
                             new Date(player.joinDate) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
                         );
                         break;
@@ -645,6 +775,63 @@
             }
             */
         });
+
+        function openPointModal() {
+            const modal = document.getElementById('pointModal');
+            const input = document.getElementById('pointInput');
+            input.value = 0;
+            modal.style.display = 'flex';
+        }
+
+
+
+        function closePointModal() {
+            document.getElementById('pointModal').style.display = 'none';
+        }
+
+        function savePoints() {
+            const pointInput = document.getElementById('pointInput');
+            const newVal = parseInt(pointInput.value); // 將輸入值轉換為整數
+            const pointValueElement = document.getElementById('pointValue');
+            const currentPoints = parseInt(pointValueElement.textContent); // 獲取當前點數，並轉換為整數
+
+            // 檢查輸入是否為有效數字
+            if (isNaN(newVal)) {
+                alert('請輸入有效的數字！');
+                return; // 終止函式執行
+            }
+
+            // 檢查輸入值是否為正數（因為是扣除）
+            if (newVal <= 0) {
+                alert('請輸入一個大於零的數字來扣除點數！');
+                return; // 終止函式執行
+            }
+
+            // 檢查輸入點數是否大於現有總點數
+            if (newVal > currentPoints) {
+                alert('您沒有足夠的點數來扣除！現有 ' + currentPoints + ' 點。');
+                return; // 終止函式執行
+            }
+
+            // 如果通過所有驗證，則執行扣除操作
+            const updatedPoints = currentPoints - newVal;
+            pointValueElement.textContent = updatedPoints; // 更新顯示的點數
+
+            closePointModal(); // 關閉模態框
+        }
+
+        //第二種
+        // document.addEventListener('DOMContentLoaded', () => {
+
+        //     const pointBalanceDiv = document.getElementById('pointBalance');
+
+        //     if (pointBalanceDiv) {
+        //         pointBalanceDiv.addEventListener('click', () => {
+        //             window.location.href = 'reward-exchange-page.html';
+        //         });
+        //     }
+
+        // });
     </script>
 </body>
 

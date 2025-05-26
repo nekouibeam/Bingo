@@ -734,12 +734,12 @@
                         <div class="stat-label">已完成</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="totalCount">9</div>
+                        <div class="stat-value" id="totalCount">5</div>
                         <div class="stat-label">需解鎖</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="score">150</div>
-                        <div class="stat-label">得分</div>
+                        <div class="stat-value" id="reward">150</div>
+                        <div class="stat-label">解鎖獎勵</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="remainingTime">00:00</div>
@@ -820,9 +820,10 @@
             let selectedAnswer = null;
             let gameStats = {
                 completed: 0,
-                total: 9,
-                score: 0,
-                timeRemaining: 0
+                total: 5,
+                reward: 0,
+                timeRemaining: 0,
+                rewarded: false 
             };
 
             // 1️⃣ 初始化階段
@@ -839,8 +840,10 @@
                     }
                 });
                 gameStats.completed = completedArticleIds.length;
-                gameStats.score = completedArticleIds.length * 50;
 
+                if (gameStats.completed >= gameStats.total) {
+                    claimReward();  // 試著領取獎勵（API 會避免重複領）
+                }
                 displayCurrentQuestion();
                 updateGameStats();
                 setupEventListeners();
@@ -909,22 +912,18 @@
                         completed: false,
                         index
                     }));
-
-                    gameStats.total = bingoData.length;
-                    gameStats.completed = 0;
-                    gameStats.score = 0;
+                    gameStats.reward = data.reward;
+                    document.getElementById('reward').textContent = gameStats.reward;
+                    document.getElementById('totalCount').textContent = gameStats.total;
 
                     if (data.passlimit) {
                         const minutes = data.passlimit;
                         const totalSeconds = minutes * 60;
-
                         // 設定全域時間變數
                         gameStats.timeRemaining = totalSeconds;
-
                         // 更新畫面
                         const timerElement = document.getElementById('remainingTime');
                         timerElement.textContent = `${String(minutes).padStart(2, '0')}:00`;
-
                         // 開始倒數
                         startTimer();
                     }
@@ -956,7 +955,46 @@
                 }
             }
 
-             function renderBingoGrid() {
+            async function claimReward() {
+                const token = localStorage.getItem("token");
+                const userId = localStorage.getItem("userId");
+                const bingoId = new URLSearchParams(window.location.search).get("id");
+
+                if (!token || !bingoId || !gameStats.reward || gameStats.rewarded) return;
+
+                try {
+                    const res = await fetch("http://localhost:3000/reward", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            bingoId: parseInt(bingoId),
+                            reward: gameStats.reward
+                        })
+                    });
+
+                    const result = await res.json();
+                    if (res.ok) {
+                        if (result.message === "已領過獎勵") {
+                            showNotification("🎁 已經領取過點數", "info");
+                        } else if (result.message === "點數發放成功") {
+                            showNotification(`🎉 成功獲得 ${gameStats.reward} 點！`, "success");
+                        } else {
+                            showNotification(result.message, "info"); // fallback 顯示訊息
+                        }
+                        gameStats.rewarded = true; // ✅ 標記為已領取
+                    } else {
+                        showNotification(`⚠️ ${result.error || "領取點數失敗"}`, "error");
+                    }
+                } catch (err) {
+                    console.error("點數發送失敗", err);
+                    showNotification("🚫 無法發送點數", "error");
+                }
+            }
+
+            function renderBingoGrid() {
                 const grid = document.getElementById('bingoGrid');
                 grid.innerHTML = '';
                 bingoData.forEach((item, index) => {
@@ -1061,7 +1099,6 @@
                 if (isCorrect) {
                     question.completed = true;
                     gameStats.completed++;
-                    gameStats.score += 50;
 
                     // ✅ 更新該格子為已完成
                     const cell = document.querySelector(`.bingo-cell[data-index="${currentQuestionIndex}"]`);
@@ -1115,19 +1152,18 @@
                     if (!bingoData[nextIndex].completed) {
                         currentQuestionIndex = nextIndex;
                         displayCurrentQuestion();
+                        if (gameStats.completed >= gameStats.total && !gameStats.rewarded) {
+                            claimReward();
+                        }
                         return;
                     }
                     nextIndex++;
                     attempts++;
                 }
-
-                showNotification("🎉 全部完成！", "success");
             }
 
             function updateGameStats() {
                 document.getElementById('completedCount').textContent = gameStats.completed;
-                document.getElementById('totalCount').textContent = gameStats.total;
-                document.getElementById('score').textContent = gameStats.score;
 
                 const progress = (gameStats.completed / gameStats.total) * 100;
                 document.getElementById('progressFill').style.width = `${progress}%`;
